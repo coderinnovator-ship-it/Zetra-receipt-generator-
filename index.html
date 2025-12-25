@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professional Receipt Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    .container {
+        background: #fff;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        width: 100%;
+        max-width: 500px;
+    }
+    h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 25px;
+    }
+    .input-group {
+        margin-bottom: 15px;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+        font-weight: 600;
+    }
+    input, select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+        font-size: 16px;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+    }
+    input:focus, select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    button {
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 8px;
+        border: none;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .btn-add {
+        background: #4CAF50;
+        color: white;
+    }
+    .btn-download {
+        background: #2196F3;
+        color: white;
+    }
+    .btn-clear {
+        background: #ff5252;
+        color: white;
+    }
+    .preview {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9f9f9;
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        min-height: 100px;
+    }
+    .preview h3 {
+        margin-top: 0;
+        color: #333;
+    }
+    .item-list {
+        list-style: none;
+        padding: 0;
+    }
+    .item-list li {
+        padding: 8px;
+        margin: 5px 0;
+        background: white;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .total-section {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 2px solid #333;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: right;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>📄 Receipt Generator</h2>
+    
+    <div class="input-group">
+        <label>Company Name</label>
+        <input type="text" id="company" placeholder="My Company" value="My Company">
+    </div>
+    
+    <div class="input-group">
+        <label>Customer Name/Email</label>
+        <input type="text" id="customer" placeholder="e.g., John Doe or john@email.com">
+    </div>
+    
+    <div class="input-group">
+        <label>Currency</label>
+        <select id="currency">
+            <option value="USD" data-symbol="$">USD - US Dollar ($)</option>
+            <option value="EUR" data-symbol="€">EUR - Euro (€)</option>
+            <option value="GBP" data-symbol="£">GBP - British Pound (£)</option>
+            <option value="JPY" data-symbol="¥">JPY - Japanese Yen (¥)</option>
+            <option value="CNY" data-symbol="¥">CNY - Chinese Yuan (¥)</option>
+            <option value="INR" data-symbol="₹">INR - Indian Rupee (₹)</option>
+            <option value="CAD" data-symbol="C$">CAD - Canadian Dollar (C$)</option>
+            <option value="AUD" data-symbol="A$">AUD - Australian Dollar (A$)</option>
+            <option value="NGN" data-symbol="₦">NGN - Nigerian Naira (₦)</option>
+            <option value="ZAR" data-symbol="R">ZAR - South African Rand (R)</option>
+            <option value="KES" data-symbol="KSh">KES - Kenyan Shilling (KSh)</option>
+            <option value="GHS" data-symbol="₵">GHS - Ghanaian Cedi (₵)</option>
+            <option value="MXN" data-symbol="MX$">MXN - Mexican Peso (MX$)</option>
+            <option value="BRL" data-symbol="R$">BRL - Brazilian Real (R$)</option>
+            <option value="AED" data-symbol="د.إ">AED - UAE Dirham (د.إ)</option>
+            <option value="SAR" data-symbol="﷼">SAR - Saudi Riyal (﷼)</option>
+            <option value="SGD" data-symbol="S$">SGD - Singapore Dollar (S$)</option>
+            <option value="CHF" data-symbol="Fr">CHF - Swiss Franc (Fr)</option>
+        </select>
+    </div>
+    
+    <div class="input-group">
+        <label>Item/Service Name</label>
+        <input type="text" id="item" placeholder="e.g., Big cola">
+    </div>
+    
+    <div class="input-group">
+        <label>Quantity</label>
+        <input type="number" id="quantity" placeholder="1" value="1" min="1">
+    </div>
+    
+    <div class="input-group">
+        <label>Price per Unit</label>
+        <input type="number" id="price" placeholder="2.00" step="0.01" min="0">
+    </div>
+    
+    <button class="btn-add" onclick="addItem()">➕ Add Item</button>
+    <button class="btn-download" onclick="generatePDF()">⬇️ Download Receipt PDF</button>
+    <button class="btn-clear" onclick="clearItems()">🗑️ Clear All Items</button>
+    
+    <div class="preview" id="preview">
+        <h3>Preview</h3>
+        <p style="color: #999;">Add items to see preview...</p>
+    </div>
+</div>
+
+<script>
+let items = [];
+
+function getCurrencySymbol() {
+    const select = document.getElementById('currency');
+    return select.options[select.selectedIndex].dataset.symbol;
+}
+
+function getCurrencyCode() {
+    return document.getElementById('currency').value;
+}
+
+function addItem() {
+    const itemName = document.getElementById('item').value.trim();
+    const price = parseFloat(document.getElementById('price').value);
+    const quantity = parseInt(document.getElementById('quantity').value);
+    
+    if(!itemName || !price || !quantity) {
+        alert('Please fill in all item fields!');
+        return;
+    }
+    
+    items.push({itemName, price, quantity});
+    updatePreview();
+    
+    document.getElementById('item').value = '';
+    document.getElementById('price').value = '';
+    document.getElementById('quantity').value = 1;
+}
+
+function clearItems() {
+    items = [];
+    updatePreview();
+}
+
+function updatePreview() {
+    const preview = document.getElementById('preview');
+    const symbol = getCurrencySymbol();
+    
+    if(items.length === 0) {
+        preview.innerHTML = '<h3>Preview</h3><p style="color: #999;">Add items to see preview...</p>';
+        return;
+    }
+    
+    let total = 0;
+    let html = '<h3>Items Added:</h3><ul class="item-list">';
+    
+    items.forEach((item, index) => {
+        const lineTotal = item.price * item.quantity;
+        total += lineTotal;
+        html += `
+            <li>
+                <span>${item.itemName} (x${item.quantity} @ ${symbol}${item.price.toFixed(2)})</span>
+                <span>${symbol}${lineTotal.toFixed(2)}</span>
+            </li>
+        `;
+    });
+    
+    html += '</ul>';
+    html += `<div class="total-section">Total: ${symbol}${total.toFixed(2)}</div>`;
+    preview.innerHTML = html;
+}
+
+function generatePDF() {
+    if(items.length === 0) {
+        alert('Please add at least one item!');
+        return;
+    }
+    
+    const company = document.getElementById('company').value || "My Company";
+    const customer = document.getElementById('customer').value || "Customer";
+    const date = new Date().toLocaleDateString();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Blue header
+    doc.setFillColor(33, 150, 243);
+    doc.rect(0, 0, 210, 35, 'F'); 
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text(company, 105, 22, {align: "center"});
+
+    // Customer & Date - properly spaced
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(`Customer: ${customer}`, 15, 45);
+    doc.text(`Date: ${date}`, 150, 45);
+
+    // Table header with proper column widths
+    let y = 55;
+    doc.setFillColor(230, 230, 230);
+    doc.rect(15, y, 180, 10, 'F');
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text("Item", 20, y + 7);
+    doc.text("Qty", 110, y + 7);
+    doc.text("Price", 135, y + 7);
+    doc.text("Total", 165, y + 7);
+    
+    // Items with proper spacing
+    y += 15;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
+    
+    let totalAmount = 0;
+    items.forEach(item => {
+        const lineTotal = item.price * item.quantity;
+        totalAmount += lineTotal;
+        
+        // Truncate long item names if needed
+        let displayName = item.itemName;
+        if(displayName.length > 30) {
+            displayName = displayName.substring(0, 27) + '...';
+        }
+        
+        doc.text(displayName, 20, y);
+        doc.text(item.quantity.toString(), 115, y, {align: "right"});
+        doc.text(`$${item.price.toFixed(2)}`, 155, y, {align: "right"});
+        doc.text(`$${lineTotal.toFixed(2)}`, 185, y, {align: "right"});
+        
+        y += 8;
+    });
+
+    // Total box with proper positioning
+    y += 5;
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(130, y, 65, 12);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Total: $${totalAmount.toFixed(2)}`, 162, y + 8, {align: "center"});
+
+    // Footer
+    y += 25;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'italic');
+    doc.text("Thank you for your business!", 105, y, {align: "center"});
+
+    // Save with proper filename
+    const filename = `Receipt-${customer.replace(/[^a-z0-9]/gi, '_')}-${date.replace(/\//g, '-')}.pdf`;
+    doc.save(filename);
+}
+</script>
+</body>
+</html>
