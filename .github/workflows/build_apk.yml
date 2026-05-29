@@ -25,18 +25,22 @@ jobs:
           distribution: 'zulu'
           java-version: '11'
 
+      - name: Set Up Android SDK Matrix
+        uses: android-actions/setup-android@v3
+
       - name: Install Android Packaging Tools
         run: |
           npm install -g @bubblewrap/cli
           mkdir -p ~/.bubblewrap
-          echo '{"jdkPath":"/usr/lib/jvm/zulu11-ca-amd64","androidSdkPath":"/usr/local/lib/android/sdk"}' > ~/.bubblewrap/config.json
+          # Dynamically inject the exact paths using system variables
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Generate Web App Configuration Files
         run: |
           echo '{
             "name": "Zetra Receipt Generator",
             "short_name": "ZetraReceipt",
-            "start_url": "https://coderinnovator-ship-it.github.io/Zetra-receipt-generator-/",
+            "start_url": "https://coderinnovator-ship-it.github.io/Zetra-receipt-generator-",
             "display": "standalone",
             "background_color": "#764ba2",
             "theme_color": "#667eea",
