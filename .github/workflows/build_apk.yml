@@ -23,7 +23,6 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Set up Android SDK Environments
         uses: android-actions/setup-android@v3
@@ -35,7 +34,7 @@ jobs:
       - name: Set up Node.js Runtime Environment
         uses: actions/setup-node@v4
         with:
-          node-size: '20'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install Cordova CLI Tools Global Module
