@@ -18,23 +18,19 @@ jobs:
       - name: Check out Repository Codebase
         uses: actions/checkout@v4
 
-      - name: Set up Java Development Kit (JDK 17)
+      - name: Set up Java Development Kit (JDK 11)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '11'
 
       - name: Set up Android SDK Environments
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK Build-Tools and Platforms
-        run: |
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
       - name: Set up Node.js Runtime Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
 
       - name: Install Cordova CLI Tools Global Module
         run: |
@@ -45,24 +41,21 @@ jobs:
           cordova create zetra_app com.zetralab.receipt ZetraReceipt
           cd zetra_app
           cordova platform add android --no-telemetry
-          # Native sharing asset layer dependency injection hook
           cordova plugin add cordova-plugin-x-socialsharing --no-telemetry
           rm -rf www/*
           cp ../index.html www/index.html
           sed -i 's/<head>/<head><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">/' www/index.html
 
-      - name: Grant Execute Permissions to Gradle Wrapper
-        run: |
-          chmod +x zetra_app/platforms/android/gradlew
-
       - name: Execute Production Build Matrix Pipeline
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
           cd zetra_app
-          cordova build android --release --no-telemetry -- --gradleArg=-PcdvMinSdkVersion=24
+          cordova build android --release --no-telemetry
 
       - name: Archive Compiled Production Application Package
         uses: actions/upload-artifact@v4
         with:
           name: ZetraReceipt-Release-Package
-          path: zetra_app/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: zetra_app/platforms/android/app/build/outputs/apk/release/*.apk
           retention-days: 7
