@@ -28,43 +28,34 @@ jobs:
       - name: Set Up Android SDK Matrix
         uses: android-actions/setup-android@v3
 
-      - name: Install Android Packaging Tools
-        run: |
-          npm install -g @bubblewrap/cli
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+      - name: Install Cordova Compiler Engine
+        run: npm install -g cordova
 
-      - name: Generate Web App Configuration Files
+      - name: Assemble Local App Container
         run: |
-          echo '{
-            "name": "Zetra Receipt Generator",
-            "short_name": "ZetraReceipt",
-            "start_url": "https://coderinnovator-ship-it.github.io/Zetra-receipt-generator-",
-            "display": "standalone",
-            "background_color": "#764ba2",
-            "theme_color": "#667eea",
-            "icons": [
-              {
-                "src": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=512",
-                "sizes": "512x512",
-                "type": "image/png",
-                "purpose": "any maskable"
-              }
-            ]
-          }' > manifest.json
-
-      - name: Initialize Android Package Environment
-        run: |
-          bubblewrap init --manifest=manifest.json --metaLabelling=none --noprompt || true
+          # Create a fresh Cordova project matrix
+          cordova create zetra_app com.zetralab.receipt ZetraReceipt
+          cd zetra_app
+          
+          # Add the Android deployment platform
+          cordova platform add android --no-telemetry
+          
+          # Clear the placeholder web files and copy your professional source code inside
+          rm -rf www/*
+          cp ../index.html www/index.html
+          
+          # Force layout optimization for full mobile viewports
+          sed -i 's/<head>/<head><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">/' www/index.html
 
       - name: Compile Standalone Production APK
         run: |
-          bubblewrap build --skipSigning
+          cd zetra_app
+          cordova build android --release --no-telemetry -- --packageType=apk
 
       - name: Upload Clean Compiled Binary Asset to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: zetra-receipt-apk
-          path: "./*.apk"
+          path: "zetra_app/platforms/android/app/build/outputs/apk/release/*.apk"
           if-no-files-found: error
           retention-days: 7
