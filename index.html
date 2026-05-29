@@ -371,6 +371,7 @@ function executeDocumentBuild() {
     const company = document.getElementById('company').value || "My Company";
     const customer = document.getElementById('customer').value || "Customer";
     const date = new Date().toLocaleDateString();
+    const symbol = getCurrencySymbol();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -417,8 +418,8 @@ function executeDocumentBuild() {
         
         doc.text(displayName, 20, y);
         doc.text(item.quantity.toString(), 115, y, {align: "right"});
-        doc.text(`$${item.price.toFixed(2)}`, 155, y, {align: "right"});
-        doc.text(`$${lineTotal.toFixed(2)}`, 185, y, {align: "right"});
+        doc.text(`${symbol}${item.price.toFixed(2)}`, 155, y, {align: "right"});
+        doc.text(`${symbol}${lineTotal.toFixed(2)}`, 185, y, {align: "right"});
         
         y += 8;
     });
@@ -430,7 +431,7 @@ function executeDocumentBuild() {
     doc.rect(130, y, 65, 12);
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text(`Total: $${totalAmount.toFixed(2)}`, 162, y + 8, {align: "center"});
+    doc.text(`Total: ${symbol}${totalAmount.toFixed(2)}`, 162, y + 8, {align: "center"});
 
     // Footer
     y += 25;
@@ -455,24 +456,27 @@ function closeShareSheet() {
 
 function executeNativeShare() {
     if (!compiledBlob) {
-        alert("System Cache Error: Asset data not found.");
+        console.error("System Cache Error: Asset data not found.");
         return;
     }
 
     // Wrap the blob data array inside a standard system File definition
     const shareFile = new File([compiledBlob], compiledFileName, { type: 'application/pdf' });
 
-    // Launch Android Platform Sharesheet Integration Hooks
+    // Launch Android Platform Sharesheet Integration Hooks safely
     if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
         navigator.share({
             files: [shareFile],
             title: 'Receipt PDF Document',
             text: 'Compiled transaction invoice record generated securely.'
         })
-        .then(() => console.log('Sharing success.'))
+        .then(() => {
+            console.log('Sharing success.');
+            closeShareSheet();
+        })
         .catch((err) => console.log('Sharing dismissed:', err));
     } else {
-        // Ultimate Fallback option if device doesn't support sharing file streams directly
+        // Safe download execution pipeline if file streaming sharing isn't fully handled by the client browser
         const fallbackUrl = URL.createObjectURL(compiledBlob);
         const anchorLink = document.createElement('a');
         anchorLink.href = fallbackUrl;
@@ -480,7 +484,9 @@ function executeNativeShare() {
         document.body.appendChild(anchorLink);
         anchorLink.click();
         document.body.removeChild(anchorLink);
-        alert("Sharesheet unsupported: PDF file exported directly to system downloads folder.");
+        
+        // Quietly close down the share sheet container without launching a system alert box
+        closeShareSheet();
     }
 }
 </script>
