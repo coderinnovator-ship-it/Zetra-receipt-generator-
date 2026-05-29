@@ -1,61 +1,61 @@
-name: Build Android APK
+name: Build Production APK
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
   workflow_dispatch:
 
 jobs:
   build:
-    name: Compile Android App Package
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out Repository Codebase
+      - name: Checkout Repository Source Code
         uses: actions/checkout@v4
 
-      - name: Set up Java Development Kit (JDK 11)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '11'
-
-      - name: Set up Android SDK Environments
-        uses: android-actions/setup-android@v3
-
-      - name: Set up Node.js Runtime Environment
+      - name: Set Up Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Install Cordova CLI Tools Global Module
-        run: |
-          npm install -g cordova
+      - name: Set Up Java Development Kit Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set Up Android SDK Matrix
+        uses: android-actions/setup-android@v3
+
+      - name: Install Cordova Compiler Engine
+        run: npm install -g cordova
 
       - name: Assemble Local App Container
         run: |
+          # Create a fresh Cordova project matrix
           cordova create zetra_app com.zetralab.receipt ZetraReceipt
           cd zetra_app
+          
+          # Add the Android deployment platform
           cordova platform add android --no-telemetry
-          cordova plugin add cordova-plugin-x-socialsharing --no-telemetry
+          
+          # Clear the placeholder web files and copy your professional source code inside
           rm -rf www/*
           cp ../index.html www/index.html
+          
+          # Force layout optimization for full mobile viewports
           sed -i 's/<head>/<head><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">/' www/index.html
 
-      - name: Execute Production Build Matrix Pipeline
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
+      - name: Compile Standalone Production APK
         run: |
           cd zetra_app
-          cordova build android --release --no-telemetry
+          cordova build android --release --no-telemetry -- --packageType=apk
 
-      - name: Archive Compiled Production Application Package
+      - name: Upload Clean Compiled Binary Asset to GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: ZetraReceipt-Release-Package
-          path: zetra_app/platforms/android/app/build/outputs/apk/release/*.apk
+          name: zetra-receipt-apk
+          path: "zetra_app/platforms/android/app/build/outputs/apk/release/*.apk"
+          if-no-files-found: error
           retention-days: 7
