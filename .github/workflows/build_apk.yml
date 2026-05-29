@@ -36,7 +36,7 @@ jobs:
           echo '{
             "name": "Zetra Receipt Generator",
             "short_name": "ZetraReceipt",
-            "start_url": "./index.html",
+            "start_url": "https://coderinnovator-ship-it.github.io/Zetra-receipt-generator-/",
             "display": "standalone",
             "background_color": "#764ba2",
             "theme_color": "#667eea",
@@ -50,9 +50,12 @@ jobs:
             ]
           }' > manifest.json
 
-      - name: Compile Production Android Package Asset
+      - name: Initialize Android Package Environment
         run: |
-          echo -e "\n\n\n\n\n\n\n\n" | bubblewrap init --manifest=manifest.json
+          bubblewrap init --manifest=manifest.json --metaLabelling=none --noprompt || true
+
+      - name: Compile Standalone Production APK
+        run: |
           bubblewrap build --skipSigning
 
       - name: Upload Clean Compiled Binary Asset to GitHub
