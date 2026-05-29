@@ -267,12 +267,12 @@
     
     <div class="input-group">
         <label>Quantity</label>
-        <input type="number" id="quantity" placeholder="1" value="1" min="1">
+        <input type="number" id="quantity" placeholder="1" value="1" min="1" inputmode="numeric" pattern="[0-9]*">
     </div>
     
     <div class="input-group">
         <label>Price per Unit</label>
-        <input type="number" id="price" placeholder="2.00" step="0.01" min="0">
+        <input type="number" id="price" placeholder="2.00" step="0.01" min="0" inputmode="decimal">
     </div>
     
     <button class="btn-add" onclick="addItem()">➕ Add Item</button>
@@ -285,9 +285,10 @@
     </div>
 </div>
 
+<script src="cordova.js"></script>
 <script>
 let items = [];
-let compiledBlob = null;
+let compiledBase64 = null;
 let compiledFileName = "";
 
 function getCurrencySymbol() {
@@ -295,16 +296,12 @@ function getCurrencySymbol() {
     return select.options[select.selectedIndex].dataset.symbol;
 }
 
-function getCurrencyCode() {
-    return document.getElementById('currency').value;
-}
-
 function addItem() {
     const itemName = document.getElementById('item').value.trim();
     const price = parseFloat(document.getElementById('price').value);
     const quantity = parseInt(document.getElementById('quantity').value);
     
-    if(!itemName || !price || !quantity) {
+    if(!itemName || isNaN(price) || isNaN(quantity)) {
         alert('Please fill in all item fields!');
         return;
     }
@@ -334,7 +331,7 @@ function updatePreview() {
     let total = 0;
     let html = '<h3>Items Added:</h3><ul class="item-list">';
     
-    items.forEach((item, index) => {
+    items.forEach((item) => {
         const lineTotal = item.price * item.quantity;
         total += lineTotal;
         html += `
@@ -356,10 +353,8 @@ function generatePDF() {
         return;
     }
 
-    // Display Loading Overlay Counter
     document.getElementById('loaderBackdrop').style.display = 'flex';
 
-    // Execute Exact 2.5 Second Processing Delay
     setTimeout(() => {
         executeDocumentBuild();
         document.getElementById('loaderBackdrop').style.display = 'none';
@@ -375,20 +370,17 @@ function executeDocumentBuild() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Blue header
     doc.setFillColor(33, 150, 243);
     doc.rect(0, 0, 210, 35, 'F'); 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.text(company, 105, 22, {align: "center"});
 
-    // Customer & Date - properly spaced
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
     doc.text(`Customer: ${customer}`, 15, 45);
     doc.text(`Date: ${date}`, 150, 45);
 
-    // Table header with proper column widths
     let y = 55;
     doc.setFillColor(230, 230, 230);
     doc.rect(15, y, 180, 10, 'F');
@@ -400,7 +392,6 @@ function executeDocumentBuild() {
     doc.text("Price", 135, y + 7);
     doc.text("Total", 165, y + 7);
     
-    // Items with proper spacing
     y += 15;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
@@ -410,7 +401,6 @@ function executeDocumentBuild() {
         const lineTotal = item.price * item.quantity;
         totalAmount += lineTotal;
         
-        // Truncate long item names if needed
         let displayName = item.itemName;
         if(displayName.length > 30) {
             displayName = displayName.substring(0, 27) + '...';
@@ -424,7 +414,6 @@ function executeDocumentBuild() {
         y += 8;
     });
 
-    // Total box with proper positioning
     y += 5;
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);
@@ -433,15 +422,14 @@ function executeDocumentBuild() {
     doc.setFont(undefined, 'bold');
     doc.text(`Total: ${symbol}${totalAmount.toFixed(2)}`, 162, y + 8, {align: "center"});
 
-    // Footer
     y += 25;
     doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
     doc.text("Thank you for your business!", 105, y, {align: "center"});
 
-    // Generate output into runtime byte allocation stream
-    compiledBlob = doc.output('blob');
-    compiledFileName = `Receipt-${customer.replace(/[^a-z0-9]/gi, '_')}-${date.replace(/\//g, '-')}.pdf`;
+    // Extract PDF data as base64 string stream to pass across Cordova runtime layer safely
+    compiledBase64 = doc.output('datauristring');
+    compiledFileName = `Receipt-${customer.replace(/[^a-z0-9]/gi, '_')}.pdf`;
 }
 
 function openShareSheet() {
@@ -455,37 +443,33 @@ function closeShareSheet() {
 }
 
 function executeNativeShare() {
-    if (!compiledBlob) {
-        console.error("System Cache Error: Asset data not found.");
+    if (!compiledBase64) {
+        console.error("Asset data uncompiled.");
         return;
     }
 
-    // Wrap the blob data array inside a standard system File definition
-    const shareFile = new File([compiledBlob], compiledFileName, { type: 'application/pdf' });
-
-    // Launch Android Platform Sharesheet Integration Hooks safely
-    if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
-        navigator.share({
-            files: [shareFile],
-            title: 'Receipt PDF Document',
-            text: 'Compiled transaction invoice record generated securely.'
-        })
-        .then(() => {
-            console.log('Sharing success.');
+    // Verify if app is currently executing inside Android native Cordova framework runtime
+    if (window.plugins && window.plugins.socialsharing) {
+        window.plugins.socialsharing.shareWithOptions({
+            files: [compiledBase64],
+            subject: 'Transaction Invoice',
+            message: 'Compiled transaction invoice record generated securely by Zetra Lab App Container Asset.'
+        }, 
+        () => {
+            console.log('Native share successful');
             closeShareSheet();
-        })
-        .catch((err) => console.log('Sharing dismissed:', err));
+        }, 
+        (err) => {
+            console.error('Native share operation failed:', err);
+        });
     } else {
-        // Safe download execution pipeline if file streaming sharing isn't fully handled by the client browser
-        const fallbackUrl = URL.createObjectURL(compiledBlob);
+        // Universal web browser fallback if testing inside a standard web workspace environment
         const anchorLink = document.createElement('a');
-        anchorLink.href = fallbackUrl;
+        anchorLink.href = compiledBase64;
         anchorLink.download = compiledFileName;
         document.body.appendChild(anchorLink);
         anchorLink.click();
         document.body.removeChild(anchorLink);
-        
-        // Quietly close down the share sheet container without launching a system alert box
         closeShareSheet();
     }
 }
