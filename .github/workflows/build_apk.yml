@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '17'
 
       - name: Set Up Android SDK Matrix
         uses: android-actions/setup-android@v3
@@ -32,7 +32,6 @@ jobs:
         run: |
           npm install -g @bubblewrap/cli
           mkdir -p ~/.bubblewrap
-          # Dynamically inject the exact paths using system variables
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Generate Web App Configuration Files
