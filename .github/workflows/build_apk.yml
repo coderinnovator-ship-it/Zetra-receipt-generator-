@@ -1,0 +1,64 @@
+name: Build Production APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Set Up Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Set Up Java Development Kit Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Install Android Packaging Tools
+        run: |
+          npm install -g @bubblewrap/cli
+          mkdir -p ~/.bubblewrap
+          echo '{"jdkPath":"/usr/lib/jvm/zulu11-ca-amd64","androidSdkPath":"/usr/local/lib/android/sdk"}' > ~/.bubblewrap/config.json
+
+      - name: Generate Web App Configuration Files
+        run: |
+          echo '{
+            "name": "Zetra Receipt Generator",
+            "short_name": "ZetraReceipt",
+            "start_url": "./index.html",
+            "display": "standalone",
+            "background_color": "#764ba2",
+            "theme_color": "#667eea",
+            "icons": [
+              {
+                "src": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=512",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+              }
+            ]
+          }' > manifest.json
+
+      - name: Compile Production Android Package Asset
+        run: |
+          echo -e "\n\n\n\n\n\n\n\n" | bubblewrap init --manifest=manifest.json
+          bubblewrap build --skipSigning
+
+      - name: Upload Clean Compiled Binary Asset to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: zetra-receipt-apk
+          path: "./*.apk"
+          if-no-files-found: error
+          retention-days: 7
