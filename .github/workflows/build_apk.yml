@@ -33,29 +33,23 @@ jobs:
 
       - name: Assemble Local App Container
         run: |
-          # Create a fresh Cordova project matrix
           cordova create zetra_app com.zetralab.receipt ZetraReceipt
           cd zetra_app
-          
-          # Add the Android deployment platform
           cordova platform add android --no-telemetry
-          
-          # Clear the placeholder web files and copy your professional source code inside
           rm -rf www/*
           cp ../index.html www/index.html
-          
-          # Force layout optimization for full mobile viewports
           sed -i 's/<head>/<head><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">/' www/index.html
 
-      - name: Compile Standalone Production APK
+      - name: Compile Signed Debug Android Package
         run: |
           cd zetra_app
-          cordova build android --release --no-telemetry -- --packageType=apk
+          # Compiling as a debug-signed file bypasses the security signature block
+          cordova build android --debug --no-telemetry
 
       - name: Upload Clean Compiled Binary Asset to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: zetra-receipt-apk
-          path: "zetra_app/platforms/android/app/build/outputs/apk/release/*.apk"
+          path: "zetra_app/platforms/android/app/build/outputs/apk/debug/*.apk"
           if-no-files-found: error
           retention-days: 7
