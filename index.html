@@ -109,15 +109,126 @@
         font-weight: bold;
         text-align: right;
     }
+
+    /* Guide Section Styles */
+    .guide-box {
+        background: #fdfdfd;
+        border-left: 4px solid #764ba2;
+        padding: 12px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #444;
+    }
+    .guide-box ol {
+        margin: 5px 0 0 20px;
+        padding: 0;
+    }
+
+    /* Loading Overlay Animation */
+    .loader-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .loader-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgba(255, 255, 255, 0.2);
+        border-top: 5px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    .loader-text {
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    /* Native Sheet Sharing UI */
+    .share-sheet {
+        position: fixed;
+        bottom: -100%;
+        left: 0;
+        width: 100%;
+        background: #fff;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.2);
+        transition: bottom 0.3s ease-out;
+        z-index: 9999;
+        padding: 25px;
+        box-sizing: border-box;
+    }
+    .share-sheet.active {
+        bottom: 0;
+    }
+    .sheet-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.4);
+        display: none;
+        z-index: 9998;
+    }
+    .btn-sheet-share {
+        background: #25D366;
+        color: white;
+    }
+    .btn-sheet-close {
+        background: #eee;
+        color: #333;
+        margin-top: 8px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 </style>
 </head>
 <body>
+
+<div id="loaderBackdrop" class="loader-backdrop">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Compiling Ledger Assets...</div>
+</div>
+
+<div id="sheetBackdrop" class="sheet-backdrop" onclick="closeShareSheet()"></div>
+<div id="shareSheet" class="share-sheet">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #333; font-size: 20px;">Receipt PDF Compiled</h3>
+        <p style="margin: 5px 0 0 0; color: #777; font-size: 14px;">Ready for system asset distribution</p>
+    </div>
+    <button class="btn-sheet-share" onclick="executeNativeShare()">📤 Share Document File</button>
+    <button class="btn-sheet-close" onclick="closeShareSheet()">Dismiss</button>
+</div>
+
 <div class="container">
     <h2>📄 Receipt Generator</h2>
+
+    <div class="guide-box">
+        <strong>💡 Operation Guide:</strong>
+        <ol>
+            <li>Verify company configuration and target currency protocol.</li>
+            <li>Incorporate item names, individual pricing, and item quantities.</li>
+            <li>Compile receipt layout matrix to invoke native share protocols.</li>
+        </ol>
+    </div>
     
     <div class="input-group">
         <label>Company Name</label>
-        <input type="text" id="company" placeholder="My Company" value="My Company">
+        <input type="text" id="company" placeholder="My Company" value="Zetra Lab">
     </div>
     
     <div class="input-group">
@@ -176,6 +287,8 @@
 
 <script>
 let items = [];
+let compiledBlob = null;
+let compiledFileName = "";
 
 function getCurrencySymbol() {
     const select = document.getElementById('currency');
@@ -242,7 +355,19 @@ function generatePDF() {
         alert('Please add at least one item!');
         return;
     }
-    
+
+    // Display Loading Overlay Counter
+    document.getElementById('loaderBackdrop').style.display = 'flex';
+
+    // Execute Exact 2.5 Second Processing Delay
+    setTimeout(() => {
+        executeDocumentBuild();
+        document.getElementById('loaderBackdrop').style.display = 'none';
+        openShareSheet();
+    }, 2500);
+}
+
+function executeDocumentBuild() {
     const company = document.getElementById('company').value || "My Company";
     const customer = document.getElementById('customer').value || "Customer";
     const date = new Date().toLocaleDateString();
@@ -313,9 +438,50 @@ function generatePDF() {
     doc.setFont(undefined, 'italic');
     doc.text("Thank you for your business!", 105, y, {align: "center"});
 
-    // Save with proper filename
-    const filename = `Receipt-${customer.replace(/[^a-z0-9]/gi, '_')}-${date.replace(/\//g, '-')}.pdf`;
-    doc.save(filename);
+    // Generate output into runtime byte allocation stream
+    compiledBlob = doc.output('blob');
+    compiledFileName = `Receipt-${customer.replace(/[^a-z0-9]/gi, '_')}-${date.replace(/\//g, '-')}.pdf`;
+}
+
+function openShareSheet() {
+    document.getElementById('sheetBackdrop').style.display = 'block';
+    document.getElementById('shareSheet').classList.add('active');
+}
+
+function closeShareSheet() {
+    document.getElementById('sheetBackdrop').style.display = 'none';
+    document.getElementById('shareSheet').classList.remove('active');
+}
+
+function executeNativeShare() {
+    if (!compiledBlob) {
+        alert("System Cache Error: Asset data not found.");
+        return;
+    }
+
+    // Wrap the blob data array inside a standard system File definition
+    const shareFile = new File([compiledBlob], compiledFileName, { type: 'application/pdf' });
+
+    // Launch Android Platform Sharesheet Integration Hooks
+    if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+        navigator.share({
+            files: [shareFile],
+            title: 'Receipt PDF Document',
+            text: 'Compiled transaction invoice record generated securely.'
+        })
+        .then(() => console.log('Sharing success.'))
+        .catch((err) => console.log('Sharing dismissed:', err));
+    } else {
+        // Ultimate Fallback option if device doesn't support sharing file streams directly
+        const fallbackUrl = URL.createObjectURL(compiledBlob);
+        const anchorLink = document.createElement('a');
+        anchorLink.href = fallbackUrl;
+        anchorLink.download = compiledFileName;
+        document.body.appendChild(anchorLink);
+        anchorLink.click();
+        document.body.removeChild(anchorLink);
+        alert("Sharesheet unsupported: PDF file exported directly to system downloads folder.");
+    }
 }
 </script>
 </body>
